@@ -1,10 +1,12 @@
-Model ANGELPIZ {
-	Path "models"
-	Model 0 "ANGELPIZ.obj"
-	Skin 0 "ANGELPIZ"
-	Scale 1.0 1.0 1.0
-	FrameIndex APIZ A 0 0
-}
+we are going to write a new function
+
+Write-Modeldef
+
+this will be appending text to the file in that path stored in: $script:gzdsu_auto_modeldefs_path
+
+$script:RandomSpriteName will have its last two characters trimmed before being appended
+
+write this block of text to the new file (retaining quotes as displayed) (with a linebreak before and after)
 
 Model $script:UserDefinedActorName {
     Path "models/models_auto"
@@ -13,7 +15,3 @@ Model $script:UserDefinedActorName {
     Scale 1.0 1.0 1.0
     FrameIndex $script:RandomSpriteName A 0 0
 }
-
-
-$script:RandomSpriteName
-$script:UserDefinedActorName
