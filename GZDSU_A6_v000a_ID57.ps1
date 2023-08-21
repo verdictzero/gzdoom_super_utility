@@ -1079,10 +1079,10 @@ function Set-ZscriptActorDefinition {
     $spriteNamePrefix = $script:RandomSpriteName.Substring(0, 4)
 
     # Append _ and the prefix to the user-defined actor name
-    $adjustedActorName = $script:UserDefinedActorName + "_" + $spriteNamePrefix
+    $script:adjustedActorName = $script:UserDefinedActorName + "_" + $spriteNamePrefix
 
     # Derive the filename based on the adjusted actor name
-    $filename = "$adjustedActorName".ToLower() + ".zs"
+    $filename = "$script:adjustedActorName".ToLower() + ".zs"
 
     Write-Host "`n[ - DEBUG - ] - Derived file name: $filename" @script:debugColors
     
@@ -1094,30 +1094,30 @@ function Set-ZscriptActorDefinition {
     Write-Host "`n[ - DEBUG - ] - Appended include statement to $zscript_auto_path" @script:debugColors
 
     # Set the full path for the new actor definition file
-    $actorDefinitionPath = Join-Path -Path "$script:project_root_directory\zscript\zscript_actors_auto" -ChildPath $filename
+    $script:actorDefinitionPath = Join-Path -Path "$script:project_root_directory\zscript\zscript_actors_auto" -ChildPath $filename
     
     # Construct the actor definition text
     $trimmedSpriteName = $script:RandomSpriteName -replace 'A0$'  # Trim 'A0' from the end
     $actorDefinition = @"
-class $adjustedActorName : Actor {
+class $script:adjustedActorName : Actor {
     Default {
-        Radius 0
-        Height 0
-        +SOLID
-        +FloorClip
+        Radius 0;
+        Height 0;
+        +SOLID;
+        +FloorClip;
         States {
             Spawn:
-                $trimmedSpriteName A -1
-            Stop
+                $trimmedSpriteName A -1;
+            Stop;
         }
     }
 }
 "@
     
     # Write the actor definition to the new file
-    Set-Content -Path $actorDefinitionPath -Value $actorDefinition
+    Set-Content -Path $script:actorDefinitionPath -Value $actorDefinition
     
-    Write-Host "`n[ - DEBUG - ] - Written actor definition to $actorDefinitionPath" @script:debugColors
+    Write-Host "`n[ - DEBUG - ] - Written actor definition to $script:actorDefinitionPath" @script:debugColors
     Write-Host "`n[ - OK - ] - Actor definition operation completed." @script:successColors
 }
 
@@ -1135,11 +1135,11 @@ function Debug-ZscriptActorDefinitionCheck {
     }
 
     # ---- check for the new actor definition file ----
-    $actorDefinitionPath = Join-Path -Path "$script:project_root_directory\zscript\zscript_actors_auto" -ChildPath $filename
-    if (Test-Path -Path $actorDefinitionPath -PathType Leaf) {
-        Write-Host "`n[ - DEBUG - ] - Found the actor definition file at $actorDefinitionPath." @script:debugColors
+    $script:actorDefinitionPath = Join-Path -Path "$script:project_root_directory\zscript\zscript_actors_auto" -ChildPath $filename
+    if (Test-Path -Path $script:actorDefinitionPath -PathType Leaf) {
+        Write-Host "`n[ - DEBUG - ] - Found the actor definition file at $script:actorDefinitionPath." @script:debugColors
     } else {
-        Write-Host "`n[ - ERROR - ] - Actor definition file not found at $actorDefinitionPath." @script:errorColors
+        Write-Host "`n[ - ERROR - ] - Actor definition file not found at $script:actorDefinitionPath." @script:errorColors
     }
 
     # ---- check if the include statement is in the $script:zscript_auto file ----
@@ -1188,7 +1188,8 @@ function Debug-Check_MAPINFO {
     }
 }
 
-function Write-DoomEdNums {
+<#
+function __OLD__Write-DoomEdNums {
     # Ensure the MAPINFO file exists at the defined path
     if (-not (Test-Path -Path $script:mapinfo_path)) {
         Write-Host "`n[ - ERROR - ] - MAPINFO file not found at $script:mapinfo_path." @script:errorColors
@@ -1220,6 +1221,55 @@ $script:random_ednum = $script:UserDefinedActorName
 DoomEdNums 
 {
     $script:random_ednum = $script:UserDefinedActorName
+    // ZZ_doom_ednum_automation_token_DO_NOT_DELETE
+}
+"@
+        Add-Content -Path $script:mapinfo_path -Value $doomEdNumsBlock
+        Write-Host "`n[ - DEBUG - ] - Appended new DoomEdNums block to MAPINFO." @script:debugColors
+    }
+
+    Write-Host "`n[ - OK - ] - MAPINFO update operation completed." @script:successColors
+}
+#>
+
+function Write-DoomEdNums {
+    # ---- Ensure the MAPINFO file exists at the defined path ----
+    if (-not (Test-Path -Path $script:mapinfo_path)) {
+        Write-Host "`n[ - ERROR - ] - MAPINFO file not found at $script:mapinfo_path." @script:errorColors
+        return
+    }
+
+    # ---- Generate a random number between 10000 and 20000 ----
+    $script:random_ednum = Get-Random -Minimum 5000 -Maximum 32767
+    Write-Host "`n[ - DEBUG - ] - Generated random ednum: $script:random_ednum" @script:debugColors
+
+    # ---- Extract the first four characters from RandomSpriteName ----
+    $spriteNamePrefix = $script:RandomSpriteName.Substring(0, 4)
+
+    # ---- Append _ and the prefix to the user-defined actor name ----
+    $script:adjustedActorName = $script:UserDefinedActorName + "_" + $spriteNamePrefix
+
+    # ---- Read the content of MAPINFO ----
+    $mapinfoContent = Get-Content -Path $script:mapinfo_path -Raw
+
+    # ---- Check for the automation token ----
+    if ($mapinfoContent -match "// ZZ_doom_ednum_automation_token_DO_NOT_DELETE") {
+        # ---- token found, replace it with the new lines ----
+        $replacementText = @"
+$script:random_ednum = $script:adjustedActorName
+// ZZ_doom_ednum_automation_token_DO_NOT_DELETE
+"@
+        $mapinfoContent = $mapinfoContent -replace "// ZZ_doom_ednum_automation_token_DO_NOT_DELETE", $replacementText
+        Set-Content -Path $script:mapinfo_path -Value $mapinfoContent
+        Write-Host "`n[ - DEBUG - ] - Updated MAPINFO with new ednum definition." @script:debugColors
+
+    } else {
+        # ---- token not found, append the whole block ----
+        $doomEdNumsBlock = @"
+// Autogenerated by $script:fulltitle
+DoomEdNums 
+{
+    $script:random_ednum = $script:adjustedActorName
     // ZZ_doom_ednum_automation_token_DO_NOT_DELETE
 }
 "@
@@ -1274,7 +1324,9 @@ function Write-Modeldef {
     # ---- construct the block of text to append ----
     $modeldefBlock = @"
     
-Model $script:UserDefinedActorName {
+    $script:__fixed__UserDefinedActorName = $script:adjustedActorName
+
+Model $script:__fixed__UserDefinedActorName {
     Path "models/models_auto"
     Model 0 "$script:__model_filename__USE_THIS_FOR_MODELDEF"
     Skin 0 "$script:randomly_generated_texture_name"
@@ -1287,13 +1339,79 @@ Model $script:UserDefinedActorName {
     Write-Host "`n[ - DEBUG - ] - Preparing to append model definition to $script:gzdsu_auto_modeldefs_path." @script:debugColors
 
     # ---- append to the file ----
-    Add-Content -Path $script:gzdsu_auto_modeldefs_path -Value $modeldefBlock
+    Add-Content -Path $script:gzdsu_auto_modeldefs_path -Value $modeldfBlock
 
     Write-Host "`n[ - DEBUG - ] - Appended model definition to $script:gzdsu_auto_modeldefs_path." @script:debugColors
     Write-Host "`n[ - OK - ] - Modeldef operation completed." @script:successColors
 }
 
 # +++++ +++++ +++++ ZONE 3 END +++++ +++++ +++++
+
+# +++++ +++++ +++++ ZONE 4 START +++++ +++++ +++++
+
+<#
+
+NOTE: the following function(s) are intended to undo some of the previous file operations.
+
+I did not realize GZDoom did not support multiple layers of #include
+
+In order to ensure this script actually generates usable content, we are undoing any zscript.txt
+related #include statements, and putting all Zscript Actor entries directly in zscript.txt
+
+#>
+
+# !!!!! !!!!! !!!!! HACKY BULLSHIT START !!!!! !!!!! !!!!! 
+function Invoke-ExtremelyElegantFix {
+    Write-Host "`n[ !! CAUTION !! ] - Hacky bullshit commencing..." @script:warningColors
+
+    # ---- Operations on zscript.txt ----
+    $zscriptPath = Join-Path -Path $script:project_root_directory -ChildPath "zscript.txt"
+
+    # Check if zscript.txt exists
+    if (-not (Test-Path $zscriptPath)) {
+        Write-Host "`n[ - ERROR - ] - zscript.txt not found." @script:errorColors
+        return
+    }
+
+    # Read the content
+    $zscriptContent = Get-Content -Path $zscriptPath -Raw
+
+    # Try to find and remove the include line
+    if ($zscriptContent -match '#include "zscript/zscript_auto.zs"') {
+        Write-Host "`n[ - DEBUG - ] - Located target include line in zscript.txt" @script:debugColors
+        $zscriptContent = $zscriptContent -replace '#include "zscript/zscript_auto.zs"', ''
+        Set-Content -Path $zscriptPath -Value $zscriptContent
+        Write-Host "`n[ - DEBUG - ] - Deleted target include line from zscript.txt" @script:debugColors
+    } else {
+        Write-Host "`n[ - DEBUG - ] - Target include line not found in zscript.txt" @script:debugColors
+    }
+
+    # ---- Delete zscript_auto.zs ----
+    $zscriptAutoPath = Join-Path -Path "$script:project_root_directory\zscript" -ChildPath "zscript_auto.zs"
+    if (Test-Path $zscriptAutoPath) {
+        Remove-Item -Path $zscriptAutoPath -Force
+        Write-Host "`n[ - DEBUG - ] - Deleted zscript_auto.zs" @script:debugColors
+    } else {
+        Write-Host "`n[ - DEBUG - ] - zscript_auto.zs not found." @script:debugColors
+    }
+
+    # ---- Recover actor definition and delete file ----
+    if (Test-Path $script:actorDefinitionPath) {
+        $script:__recovered__ActorDefinition = Get-Content -Path $script:actorDefinitionPath -Raw
+        Remove-Item -Path $script:actorDefinitionPath -Force
+        Write-Host "`n[ - DEBUG - ] - Deleted and recovered actor definition from $script:actorDefinitionPath" @script:debugColors
+    } else {
+        Write-Host "`n[ - DEBUG - ] - File not found at $script:actorDefinitionPath" @script:debugColors
+    }
+
+    # ---- Write to zscript.txt ----
+    Add-Content -Path $zscriptPath -Value "`n$script:__recovered__ActorDefinition`n"
+    Write-Host "`n[ - DEBUG - ] - Appended recovered actor definition to zscript.txt" @script:debugColors
+
+    Write-Host "`n[ - OK - ] - Elegant fix operation completed." @script:successColors
+}
+
+# !!!!! !!!!! !!!!! HACKY BULLSHIT END !!!!! !!!!! !!!!! 
 
 # +++++ +++++ +++++ END OF FUNCTION DEFINITION BLOCK +++++ +++++ +++++
 
