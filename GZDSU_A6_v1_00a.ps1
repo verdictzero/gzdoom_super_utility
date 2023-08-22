@@ -10,7 +10,7 @@ Clear-Host
 # ---- title and version info ----
 $script:title = "GZDoom Super Utility"
 $script:title_version_separator = " | "
-$script:version = "A6_v0.00a_IDzz"
+$script:version = "A6_v1.00a"
 $script:full_title = $title + $title_version_separator + $version
 
 # ---- extra stuff ----
@@ -1466,6 +1466,144 @@ function Debug-DisplayZscriptActorCopyBuffer {
     }
 }
 
+function Debug-CreateActorsFolderInZscript {
+    # Construct the path to the 'actors' folder inside 'zscript'
+    $actorsFolderPath = Join-Path -Path "$script:project_root_directory\zscript" -ChildPath "actors"
+
+    # Check if the directory already exists
+    if (-not (Test-Path $actorsFolderPath)) {
+        # Create the 'actors' directory
+        Write-Host "`nCreating zscript/actors directory..." @script:warningColors
+        New-Item -Path $actorsFolderPath -ItemType Directory
+
+        Write-Host "`n[ - OK - ] - 'actors' folder created inside 'zscript'." @script:successColors
+    } else {
+        Write-Host "[ - INFO - ] - 'actors' folder already exists inside 'zscript'." @script:infoColors
+    }
+}
+
+function Write-ActorToFile {
+    if (-not $script:ZscriptActorCopyBuffer) {
+        Write-Host "[ - ERROR - ] - No content found in ZscriptActorCopyBuffer." @script:errorColors
+        return
+    }
+
+    $actorNameFound = $false
+
+    # Split the buffer by newlines
+    $lines = $script:ZscriptActorCopyBuffer -split "`n"
+
+    foreach ($line in $lines) {
+        # Trim any whitespace from the line
+        $trimmedLine = $line.Trim()
+
+        # Check if the line begins with "class "
+        if ($trimmedLine.StartsWith("class ")) {
+            # Split the line by spaces
+            $words = $trimmedLine -split '\s+'
+
+            # If there are enough words and the next word isn't empty
+            if ($words.Count -gt 1 -and -not [string]::IsNullOrEmpty($words[1])) {
+                $script:ZscriptActorNameCopyBuffer = $words[1]
+                $actorNameFound = $true
+                break
+            }
+        }
+    }
+
+    if (-not $actorNameFound) {
+        Write-Host "[ - ERROR - ] - Unable to extract actor name from buffer." @script:errorColors
+        return
+    }
+
+    # Construct file path
+    $actorFilePath = Join-Path -Path "$script:project_root_directory\zscript\actors" -ChildPath "$script:ZscriptActorNameCopyBuffer.zs"
+
+    # Write content to the file
+    Set-Content -Path $actorFilePath -Value $script:ZscriptActorCopyBuffer
+
+    $script:ZscriptActorSidecarFilePath = $actorFilePath
+
+    Write-Host "[ - OK - ] - Actor saved to $actorFilePath" @script:successColors
+}
+
+
+function Debug-CleanZscriptFile {
+    Write-Host "`nProcessing zscript.txt for cleaning..." @script:warningColors
+
+    # Construct the path to zscript.txt in the project root directory
+    $zscriptPath = Join-Path -Path $script:project_root_directory -ChildPath "zscript.txt"
+
+    # Check if zscript.txt exists
+    if (-not (Test-Path $zscriptPath)) {
+        Write-Host "`n[ - ERROR - ] - zscript.txt not found." @script:errorColors
+        return
+    }
+
+    # Get the content of zscript.txt as an array of lines
+    $existingContent = Get-Content -Path $zscriptPath
+
+    # Filter the content
+    $filteredContent = $existingContent | Where-Object {
+        $_ -notmatch '^// Auto' -and $_ -notmatch '^// ZZ' -and $_ -ne ''
+    }
+
+    # Write the updated content back to zscript.txt
+    Set-Content -Path $zscriptPath -Value $filteredContent
+    Write-Host "[ - OK - ] - Cleaned specified content from zscript.txt" @script:successColors
+}
+
+function Write-ZscriptInclude {
+    Write-Host "`nAppending include statement to zscript.txt..." @script:warningColors
+
+    # Construct the path to zscript.txt in the project root directory
+    $zscriptPath = Join-Path -Path $script:project_root_directory -ChildPath "zscript.txt"
+
+    # Check if zscript.txt exists
+    if (-not (Test-Path $zscriptPath)) {
+        Write-Host "`n[ - ERROR - ] - zscript.txt not found." @script:errorColors
+        return
+    }
+
+    # Escape the project_root_directory for regex
+    $escapedProjectRoot = [regex]::Escape($script:project_root_directory)
+
+    # Format the path to be relative and with forward slashes
+    $relativePath = $script:ZscriptActorSidecarFilePath -replace "^$escapedProjectRoot\\", "" -replace "\\", "/"
+
+    # Construct the include statement
+    $currentDate = Get-Date
+    $includeStatement = "#include `"$relativePath`" // ZA__autogen__gdszu $currentDate"
+
+    # Append the include statement to zscript.txt
+    Add-Content -Path $zscriptPath -Value $includeStatement
+    Write-Host "`n[ - OK - ] - Appended include statement to zscript.txt" @script:successColors
+}
+
+function Debug-ExtremelyElegantFixCompletionMessage {
+    Write-Host "`n/////////////////////////////////////////////////////" @script:infoColors
+    Write-Host "[ -- INFO -- ] - Hacky bullshit is now complete..." @script:infoColors
+    Write-Host "/////////////////////////////////////////////////////" @script:infoColors
+}
+
+function Debug-CleanZscriptActorsAuto {
+    # Construct the path to the 'zscript_actors_auto' folder inside 'zscript'
+    $zscriptActorsAutoPath = Join-Path -Path "$script:project_root_directory\zscript" -ChildPath "zscript_actors_auto"
+
+    # Check if the directory exists
+    if (Test-Path $zscriptActorsAutoPath) {
+        # Try to remove the directory and capture any potential errors
+        try {
+            Remove-Item -Path $zscriptActorsAutoPath -Recurse -Force
+            Write-Host "[ - OK - ] - 'zscript_actors_auto' folder deleted from 'zscript'." @script:successColors
+        } catch {
+            Write-Host "[ - ERROR - ] - Failed to delete 'zscript_actors_auto' folder. Details: $_" @script:errorColors
+        }
+    } else {
+        Write-Host "[ - INFO - ] - 'zscript_actors_auto' folder not found inside 'zscript'." @script:infoColors
+    }
+}
+
 # !!!!! !!!!! !!!!! HACKY BULLSHIT END !!!!! !!!!! !!!!! 
 
 # +++++ +++++ +++++ END OF FUNCTION DEFINITION BLOCK +++++ +++++ +++++
@@ -1591,6 +1729,12 @@ Write-Modeldef
 Invoke-ExtremelyElegantFix
 Debug-ExtractZscriptActor
 Debug-DisplayZscriptActorCopyBuffer
+Debug-CreateActorsFolderInZscript
+Write-ActorToFile
+Debug-CleanZscriptFile
+Write-ZscriptInclude
+Debug-CleanZscriptActorsAuto 
+Debug-ExtremelyElegantFixCompletionMessage
 
 # ---- lets me know the whole thing is done (for debug purposes) ----
 
