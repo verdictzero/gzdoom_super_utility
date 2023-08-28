@@ -689,7 +689,7 @@ material texture $($script:randomly_generated_texture_name)
 
 # +++++ +++++ +++++ ZONE 2.5 START +++++ +++++ +++++
 
-function Prompt-BrightmapImport {
+function Show-BrightmapImportPrompt {
     $response = Read-Host "Do you want to import a brightmap? (yes/no)"
     
     switch ($response) {
@@ -703,12 +703,12 @@ function Prompt-BrightmapImport {
         }
         default {
             Write-Host "[ - ERROR - ] Invalid input. Please answer with 'yes' or 'no'." @script:errorColors
-            Prompt-BrightmapImport # Recursively call the function until a valid answer is given.
+            Show-BrightmapImportPrompt # Recursively call the function until a valid answer is given.
         }
     }
 }
 
-function Search-BrightmapInSource {
+function Find-BrightmapImportSource {
     # Assuming $script:texture_input_source_path is the directory where you keep the texture inputs
     $brightmapFiles = Get-ChildItem -Path $script:texture_input_source_path -Filter "*_BRIGHT.*" 
 
@@ -1756,7 +1756,9 @@ Write-Host "`n[ - DEBUG - ] - Material import complete. Moving on to the model i
 
 # //////////////////////////////////// [ ~ ZONE 2.5 ~ ] ////////////////////////////////////
 
-
+Show-BrightmapImportPrompt
+Find-BrightmapImportSource
+Show-BrightmapImportDebugInfo
 
 # //////////////////////////////////// [ ~ ZONE 3 ~ ] ////////////////////////////////////
 
