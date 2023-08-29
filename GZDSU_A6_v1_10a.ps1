@@ -690,19 +690,19 @@ material texture $($script:randomly_generated_texture_name)
 # +++++ +++++ +++++ ZONE 2.5 START +++++ +++++ +++++
 
 function Show-BrightmapImportPrompt {
-    $response = Read-Host "Do you want to import a brightmap? (yes/no)"
+    $response = Read-Host "`nDo you want to import a brightmap? (Y/N)"
     
     switch ($response) {
-        'yes' {
+        'y' {
             $script:importBrightmap = $true
-            Write-Host "Brightmap import is set to TRUE." @script:successColors
+            Write-Host "`nStarting brightmap import . . ." @script:warningColors
         }
-        'no' {
+        'n' {
             $script:importBrightmap = $false
-            Write-Host "Brightmap import is set to FALSE." @script:warningColors
+            Write-Host "`nSkipping brightmap import . . ." @script:warningColors
         }
         default {
-            Write-Host "[ - ERROR - ] Invalid input. Please answer with 'yes' or 'no'." @script:errorColors
+            Write-Host "`n[ - ERROR - ] Invalid input. Please answer with 'yes' or 'no'." @script:errorColors
             Show-BrightmapImportPrompt # Recursively call the function until a valid answer is given.
         }
     }
@@ -713,51 +713,30 @@ function Find-BrightmapImportSource {
     $brightmapFiles = Get-ChildItem -Path $script:texture_input_source_path -Filter "*_BRIGHT.*" 
 
     if ($brightmapFiles.Count -eq 0) {
-        Write-Host "[ - WARNING - ] No brightmap files found in the source directory." @script:warningColors
+        Write-Host "`n[ - WARNING - ] No brightmap files found in the source directory." @script:warningColors
         $script:brightmap_input_source_path = $null
     } elseif ($brightmapFiles.Count -eq 1) {
         $script:brightmap_input_source_path = $brightmapFiles[0].FullName
-        Write-Host "Found brightmap file: $($script:brightmap_input_source_path)" @script:successColors
+        Write-Host "`nFound brightmap file at: $($script:brightmap_input_source_path)" @script:successColors
     } else {
-        Write-Host "[ - ERROR - ] Multiple brightmap files found in the source directory. Please ensure only one brightmap file exists." @script:errorColors
+        Write-Host "`n[ - ERROR - ] Multiple brightmap files found in the source directory. Please ensure only one brightmap file exists." @script:errorColors
         $script:brightmap_input_source_path = $null
     }
 }
 
 function Show-BrightmapImportDebugInfo {
-    Write-Host "======= DEBUG INFO ======="
 
-    # Displaying the texture input source path
-    if ($null -ne $script:texture_input_source_path) {
-        Write-Host "Texture Input Source Path: $script:texture_input_source_path" @script:infoColors
-    } else {
-        Write-Host "Texture Input Source Path is not set." @script:warningColors
-    }
+    Write-Host "======= ======= DEBUG INFO ======= =======" @script:debugColors
 
-    # Displaying the brightmap input source path
+    # ---- displaying the brightmap input source path ---- 
     if ($null -ne $script:brightmap_input_source_path) {
-        Write-Host "Brightmap Input Source Path: $script:brightmap_input_source_path" @script:infoColors
+        Write-Host "`nBrightmap Input Source Path: $script:brightmap_input_source_path" @script:infoColors
     } else {
-        Write-Host "Brightmap Input Source Path is not set." @script:warningColors
+        Write-Host "`nBrightmap Input Source Path is not set." @script:warningColors
     }
 
-    # Display other variables here in a similar fashion. 
-    # I'm adding a few generic ones as placeholders, adjust them as per your actual variables.
-    if ($null -ne $script:variableName1) {
-        Write-Host "VariableName1: $script:variableName1" @script:infoColors
-    } else {
-        Write-Host "VariableName1 is not set." @script:warningColors
-    }
-
-    if ($null -ne $script:variableName2) {
-        Write-Host "VariableName2: $script:variableName2" @script:infoColors
-    } else {
-        Write-Host "VariableName2 is not set." @script:warningColors
-    }
-
-    # Add more variables here as needed.
-
-    Write-Host "=========================="
+    Write-Host "==========================================" @script:debugColors
+    
 }
 
 # +++++ +++++ +++++ ZONE 2.5 END +++++ +++++ +++++
