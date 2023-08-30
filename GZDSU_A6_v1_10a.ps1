@@ -726,7 +726,7 @@ function Find-BrightmapImportSource {
 
 function Show-BrightmapImportDebugInfo {
 
-    Write-Host "======= ======= DEBUG INFO ======= =======" @script:debugColors
+    Write-Host "`n======= ======= DEBUG INFO ======= =======" @script:debugColors
 
     # ---- displaying the brightmap input source path ---- 
     if ($null -ne $script:brightmap_input_source_path) {
@@ -737,6 +737,58 @@ function Show-BrightmapImportDebugInfo {
 
     Write-Host "==========================================" @script:debugColors
     
+}
+
+function Debug-CheckBrightmapsFolderExists {
+    # ---- Check for the existence of the brightmaps folder in the project root ----
+    $brightmapsFolderPath = Join-Path -Path $script:project_root_directory -ChildPath "brightmaps"
+
+    if (Test-Path -Path $brightmapsFolderPath -PathType Container) {
+        Write-Host "The 'brightmaps' folder already exists at $brightmapsFolderPath." @script:infoColors
+    } else {
+        # ---- If it doesn't exist, create it ----
+        Write-Host "Creating 'brightmaps' folder at $brightmapsFolderPath..." @script:warningColors
+        New-Item -Path $brightmapsFolderPath -ItemType Directory | Out-Null
+        Write-Host "'brightmaps' folder created successfully." @script:infoColors
+    }
+
+    # ---- Store the path to the brightmaps folder in the script variable ----
+    $script:brightmaps_path = $brightmapsFolderPath
+    Write-Host "Stored 'brightmaps' folder path in `\$script:brightmaps_path: $script:brightmaps_path" @script:infoColors
+}
+
+function Set-BrightmapImportSource {
+    do {
+        # ---- Prompt the user to select the brightmap import source folder ----
+        $brightmapImportSource = [System.Windows.Forms.FolderBrowserDialog]::new()
+        $brightmapImportSource.Description = "Select the brightmap import source folder"
+        $result = $brightmapImportSource.ShowDialog()
+
+        # ---- If the user cancels the dialog, exit the function ----
+        if ($result -eq 'Cancel') {
+            return
+        }
+
+        $selectedFolder = $brightmapImportSource.SelectedPath
+
+        # ---- Check the folder for _BRIGHT.* files ----
+        $brightFiles = Get-ChildItem -Path $selectedFolder -File | Where-Object { $_.BaseName -like "*_BRIGHT" }
+
+        # ---- If there's more than one _BRIGHT.* file, show an error and ask again ----
+        if ($brightFiles.Count -gt 1) {
+            Write-Host "Error: Multiple _BRIGHT.* files detected. Please ensure only one such file exists in the selected folder." @script:errorColors
+            continue
+        } elseif ($brightFiles.Count -eq 0) {
+            Write-Host "Error: No _BRIGHT.* file detected. Please select a folder containing one _BRIGHT file." @script:errorColors
+            continue
+        }
+
+        # ---- Store the path of the file in the script variable ----
+        $script:BrightmapImportSource = $brightFiles[0].FullName
+        Write-Host "Stored brightmap import source path in `\$script:BrightmapImportSource: $script:BrightmapImportSource" @script:infoColors
+
+        break
+    } while ($true)
 }
 
 # +++++ +++++ +++++ ZONE 2.5 END +++++ +++++ +++++
@@ -1738,6 +1790,8 @@ Write-Host "`n[ - DEBUG - ] - Material import complete. Moving on to the model i
 Show-BrightmapImportPrompt
 Find-BrightmapImportSource
 Show-BrightmapImportDebugInfo
+Debug-CheckBrightmapsFolderExists
+Set-BrightmapImportSource
 
 # //////////////////////////////////// [ ~ ZONE 3 ~ ] ////////////////////////////////////
 
